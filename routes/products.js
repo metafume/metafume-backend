@@ -1,8 +1,8 @@
 const express = require('express');
+const productController = require('./controllers/product.controller');
+
 const router = express.Router();
 
-router.get('/', (req, res, next) => {
-  res.send('respond with a resource');
-});
+router.get('/search', productController.getSearchList);
 
 module.exports = router;
