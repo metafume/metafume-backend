@@ -1,3 +1,4 @@
+const createError = require('http-errors');
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 
@@ -28,16 +29,13 @@ const searchTargetKeyword = async keyword => {
 
 const getSearchList = async (req, res, next) => {
   const { keyword } = req.query;
-  console.log('query:', req.query);
   try {
-    // const result = await searchTargetKeyword(keyword);
-    // console.log('getSearchList ~ result', result);
-    // res.send(result);
-    res.send(DUMMY);
+    const result = await searchTargetKeyword(keyword);
+    res.send(result);
+    // res.send(DUMMY);
   } catch (err) {
     console.log(err);
-    res.status(404).send({ message: 'No result' });
-    // next(err);
+    next(createError(404));
   }
 };
 
