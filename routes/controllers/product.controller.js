@@ -22,6 +22,15 @@ const getSearchList = async (req, res, next) => {
 const getProductDetail = async (req, res, next) => {
   try {
     const { id: path } = req.query;
+    const targetProductId = path.split('/')[1];
+    const targetResult = await get(targetProductId);
+
+    if (targetResult) {
+      const parsed = JSON.parse(targetResult);
+      redisClient.sadd('recentViewList', parsed.productId);
+      return res.send(targetResult);
+    }
+
     const result = await scraper.searchProductDetail(path);
     const mapImagePathToNote = result.notes.map(note => {
       const targetName = note.toLowerCase().replace(/\s/g, '');
