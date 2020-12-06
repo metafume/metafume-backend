@@ -1,22 +1,14 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
-const axios = require('axios');
-const userAgent = require('user-agents');
-
-const getHtml = async url => {
-  const userAgentStringified = new userAgent().toString();
-  const result = await axios.get(url, {
-    headers: {
-      'User-Agent': userAgentStringified,
-    },
-  });
-
-  return result.data;
-};
 
 const extractData = async (url, path) => {
-  const html = await getHtml(url);
-  const $ = cheerio.load(html);
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  await page.goto(url);
+
+  const content = await page.content();
+  const $ = cheerio.load(content);
 
   const accords = $('.cell .accord-box').toArray();
   const notes = $('#pyramid .cell div a').toArray();
