@@ -3,7 +3,7 @@ const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
-const dbLoader = require('./db');
+const dbLoader = require('./db').dbLoader;
 
 const initLoaders = app => {
   app.use(cors());
