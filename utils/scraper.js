@@ -1,22 +1,14 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
-const axios = require('axios');
-const userAgent = require('user-agents');
 
-const getHtml = async url => {
-  const userAgentStringified = new userAgent().toString();
-  const result = await axios.get(url, {
-    headers: {
-      'User-Agent': userAgentStringified,
-    },
-  });
+const extractData = async (url, path) => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
 
-  return result.data;
-};
+  await page.goto(url);
 
-const extractData = async url => {
-  const html = await getHtml(url);
-  const $ = cheerio.load(html);
+  const content = await page.content();
+  const $ = cheerio.load(content);
 
   const accords = $('.cell .accord-box').toArray();
   const notes = $('#pyramid .cell div a').toArray();
@@ -49,8 +41,11 @@ const extractData = async url => {
 
   const normalizedNotes = notes.map(node => node.next.data);
   const normalizedImageUrl = imageUrl[0].attribs.src;
+  const [brand, productId] = path.split('/');
 
   return {
+    brand,
+    productId,
     name: name.contents()[0].data.trim(),
     description: normalizedDescription.join('').trim(),
     accords: normalizedAccords,
@@ -86,7 +81,7 @@ const searchTargetKeyword = async keyword => {
 
 const searchProductDetail = async path => {
   const url = `https://www.fragrantica.com/perfume/${path}.html`;
-  const data = await extractData(url);
+  const data = await extractData(url, path);
   return data;
 };
 
