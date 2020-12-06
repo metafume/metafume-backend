@@ -14,7 +14,7 @@ const getHtml = async url => {
   return result.data;
 };
 
-const extractData = async url => {
+const extractData = async (url, path) => {
   const html = await getHtml(url);
   const $ = cheerio.load(html);
 
@@ -49,8 +49,11 @@ const extractData = async url => {
 
   const normalizedNotes = notes.map(node => node.next.data);
   const normalizedImageUrl = imageUrl[0].attribs.src;
+  const [brand, productId] = path.split('/');
 
   return {
+    brand,
+    productId,
     name: name.contents()[0].data.trim(),
     description: normalizedDescription.join('').trim(),
     accords: normalizedAccords,
@@ -86,7 +89,7 @@ const searchTargetKeyword = async keyword => {
 
 const searchProductDetail = async path => {
   const url = `https://www.fragrantica.com/perfume/${path}.html`;
-  const data = await extractData(url);
+  const data = await extractData(url, path);
   return data;
 };
 
