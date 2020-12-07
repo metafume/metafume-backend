@@ -90,18 +90,19 @@ process.on('message', async data => {
     const { type, payload } = data;
     let result;
 
-    if (type === 'getSearchList') {
-      result = await searchTargetKeyword(payload);
+    switch (type) {
+      case 'searchTargetKeyword':
+        result = await searchTargetKeyword(payload);
+        break;
+      case 'searchProductDetail':
+        result = await searchProductDetail(payload);
+        break;
+      default:
+        break;
     }
 
     process.send({ type: 'ok', payload: result });
   } catch (err) {
-    console.log(err);
-    process.send({ type: 'error', message: err.message });
+    process.send({ type: 'error', payload: err });
   }
 });
-
-module.exports = {
-  searchTargetKeyword,
-  searchProductDetail,
-};
