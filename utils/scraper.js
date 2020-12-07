@@ -85,6 +85,22 @@ const searchProductDetail = async path => {
   return data;
 };
 
+process.on('message', async data => {
+  try {
+    const { type, payload } = data;
+    let result;
+
+    if (type === 'getSearchList') {
+      result = await searchTargetKeyword(payload);
+    }
+
+    process.send({ type: 'ok', payload: result });
+  } catch (err) {
+    console.log(err);
+    process.send({ type: 'error', message: err.message });
+  }
+});
+
 module.exports = {
   searchTargetKeyword,
   searchProductDetail,

@@ -1,3 +1,4 @@
+const { fork } = require('child_process');
 const createError = require('http-errors');
 const redisClient = require('../../loaders/db').redisClient;
 const util = require('util');
@@ -8,14 +9,24 @@ const MATERIAL_LIST = require('../../mock/materialList.json');
 const smembers = util.promisify(redisClient.smembers).bind(redisClient);
 const get = util.promisify(redisClient.get).bind(redisClient);
 
-const getSearchList = async (req, res, next) => {
+const getSearchList = (req, res, next) => {
   try {
     const { keyword } = req.query;
-    const result = await scraper.searchTargetKeyword(keyword);
-    res.send(result);
+    const childProcess = fork(process.cwd() + '/utils/scraper.js');
+
+    childProcess.on('message', ({ type, payload }) => {
+      if (type === 'error') next(createError(404));
+      res.send(payload);
+    });
+
+    childProcess.on('error', err => {
+      next(err);
+    });
+
+    childProcess.send({ type: 'getSearchList', payload: keyword });
   } catch (err) {
     console.log(err);
-    next(createError(404));
+    next(err);
   }
 };
 
