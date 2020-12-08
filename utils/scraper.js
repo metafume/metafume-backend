@@ -85,7 +85,24 @@ const searchProductDetail = async path => {
   return data;
 };
 
-module.exports = {
-  searchTargetKeyword,
-  searchProductDetail,
-};
+process.on('message', async data => {
+  try {
+    const { type, payload } = data;
+    let result;
+
+    switch (type) {
+      case 'searchTargetKeyword':
+        result = await searchTargetKeyword(payload);
+        break;
+      case 'searchProductDetail':
+        result = await searchProductDetail(payload);
+        break;
+      default:
+        break;
+    }
+
+    process.send({ type: 'ok', payload: result });
+  } catch (err) {
+    process.send({ type: 'error', payload: err });
+  }
+});
