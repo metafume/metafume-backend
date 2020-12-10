@@ -15,8 +15,8 @@ const userSchema = new mongoose.Schema({
       type: String,
       default: null,
     },
-    recentSearch: [String],
-    myProducts: [String],
+    myFavorite: Array,
+    favoriteAccordsRating: Array,
   },
   { timestamps: true },
 );
