@@ -3,10 +3,12 @@ const { fork } = require('child_process');
 const createError = require('http-errors');
 const redisClient = require('../../loaders/db').redisClient;
 const scraperPath = process.cwd() + '/utils/scraper.js';
+const _ = require('lodash');
 
 const MATERIAL_LIST = require('../../mock/materialList.json');
 
 const smembers = util.promisify(redisClient.smembers).bind(redisClient);
+const srandmember = util.promisify(redisClient.srandmember).bind(redisClient);
 const get = util.promisify(redisClient.get).bind(redisClient);
 
 const getSearchList = (req, res, next) => {
@@ -81,7 +83,7 @@ const getProductDetail = async (req, res, next) => {
 
 const getRecentViewList = async (req, res, next) => {
   try {
-    const data = await smembers('recentViewList');
+    const data = await srandmember('recentViewList', 10);
     const promisedList = data.map(id => get(id));
 
     let recentViewList = await (async promises => {
@@ -89,12 +91,12 @@ const getRecentViewList = async (req, res, next) => {
     })(promisedList);
 
     recentViewList = recentViewList.map(product => {
-      const parsed = JSON.parse(product);
+      const { brand, name, productId, imageUrl } = JSON.parse(product);
       return {
-        brand: parsed.brand,
-        name: parsed.name,
-        productId: parsed.productId,
-        imageUrl: parsed.imageUrl,
+        brand,
+        name,
+        productId,
+        imageUrl,
       };
     });
 
