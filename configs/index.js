@@ -5,6 +5,7 @@ module.exports = {
   tokenSecretKey: process.env.TOKEN_SECRET_KEY,
   databaseUrl: process.env.MONGO_DB_URL,
   mongooseOptions: {
+    useCreateIndex: true,
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
