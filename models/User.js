@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -15,7 +16,10 @@ const userSchema = new mongoose.Schema({
       type: String,
       default: null,
     },
-    myFavorite: Array,
+    myFavorite: [{
+      type: ObjectId,
+      ref: 'Product',
+    }],
     favoriteAccordsRating: Array,
   },
   { timestamps: true },
