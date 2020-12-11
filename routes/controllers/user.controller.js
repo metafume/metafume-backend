@@ -1,10 +1,15 @@
+const { fork } = require('child_process');
 const createError = require('http-errors');
 const redis = require('../../lib/redis');
 const jwt = require('jsonwebtoken');
 const { tokenSecretKey } = require('../../configs');
+const _ = require('lodash');
+const scraperPath = process.cwd() + '/utils/scraper.js';
 
 const User = require('../../models/User');
 const Product = require('../../models/Product');
+
+const { getRandomItemList } = require('../../utils/getRandomItemList');
 
 const googleLogin = async (req, res, next) => {
   const user = req.body;
@@ -60,6 +65,7 @@ const addFavoriteProduct = async (req, res, next) => {
     cachedTargetProduct = JSON.parse(cachedTargetProduct);
 
     let targetProduct = await Product.findOne({ productId: product_id });
+
     if (!targetProduct) {
       targetProduct = await Product.create({
         productId: product_id,
@@ -152,9 +158,56 @@ const deleteFavoriteProduct = async (req, res, next) => {
   }
 };
 
+const getRecommendList = async (req, res, next) => {
+  try {
+    const { user_id } = req.params;
+    let cachedRecommendList = await redis.get(user_id);
+    cachedRecommendList = JSON.parse(cachedRecommendList);
+
+    if (cachedRecommendList) {
+      const randomRecommendList = getRandomItemList(cachedRecommendList, 10);
+      return res.json(randomRecommendList);
+    }
+
+    const user = await User.findById(user_id);
+    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    const childProcess = fork(scraperPath);
+    let target;
+    let keyword;
+
+    if (favoriteAccordsRate.length > 0) {
+      favoriteAccordsRate.sort((a, b) => b.rate - a.rate);
+      target = _.random(0, Math.ceil(favoriteAccordsRate.length / 3));
+    }
+
+    if (favoriteAccordsRate[target]) keyword = favoriteAccordsRate[target].name;
+
+    if (!keyword) return next(createError(404));
+
+    childProcess.on('message', ({ type, payload }) => {
+      if (!payload) next(createError(404));
+      if (type === 'error') next(payload);
+
+      const randomRecommendList = getRandomItemList(payload, 10);
+
+      redis.setex(user_id, 60 * 60 * 12, payload);
+      res.send(randomRecommendList);
+    });
+
+    childProcess.on('error', err => {
+      next(err);
+    });
+
+    childProcess.send({ type: 'searchTargetKeyword', payload: keyword });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   googleLogin,
   tokenLogin,
   addFavoriteProduct,
   deleteFavoriteProduct,
+  getRecommendList,
 };
