@@ -20,7 +20,13 @@ const userSchema = new mongoose.Schema({
       type: ObjectId,
       ref: 'Product',
     }],
-    favoriteAccordsRating: Array,
+    favoriteAccordsRate: [{
+      name: { type: String, required: true },
+      rate: { type: Number, default: 0 },
+      color: { type: String, required: true },
+      _id: false,
+    }],
+    favoriteBrand: [String],
   },
   { timestamps: true },
 );
