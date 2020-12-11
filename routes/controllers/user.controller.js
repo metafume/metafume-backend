@@ -56,22 +56,51 @@ const tokenLogin = async (req, res, next) => {
 const addFavoriteProduct = async (req, res, next) => {
   try {
     const { product_id, user_id } = req.params;
+    let cachedTargetProduct = await redis.get(product_id);
+    cachedTargetProduct = JSON.parse(cachedTargetProduct);
+
     let targetProduct = await Product.findOne({ productId: product_id });
-
     if (!targetProduct) {
-      let product = await redis.get(product_id);
-      product = JSON.parse(product);
-
       targetProduct = await Product.create({
         productId: product_id,
-        brand: product.brand,
-        name: product.name,
-        imageUrl: product.imageUrl,
+        brand: cachedTargetProduct.brand,
+        name: cachedTargetProduct.name,
+        imageUrl: cachedTargetProduct.imageUrl,
       });
     }
 
     const user = await User.findById(user_id);
+
     await user.myFavorite.addToSet(targetProduct._id);
+    await user.favoriteBrand.addToSet(targetProduct.brand);
+
+    let favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    favoriteAccordsRate = favoriteAccordsRate.reduce((obj, accord) => {
+      obj[accord.name] = { rate: accord.rate, color: accord.color };
+      return obj;
+    }, {});
+
+    let calculatedAccordsRate = cachedTargetProduct.accords.reduce((obj, accord) => {
+      if (obj[accord.name]) {
+        obj[accord.name].rate += parseInt(accord.styles.width);
+      } else {
+        obj[accord.name] = {
+          rate: parseInt(accord.styles.width),
+          color: accord.styles.background,
+        };
+      }
+      return obj;
+    }, favoriteAccordsRate);
+
+    calculatedAccordsRate = Object.entries(calculatedAccordsRate)
+      .map(([key, value]) => ({ name: key, ...value }));
+
+    await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
+
+    calculatedAccordsRate.forEach(accord => {
+      user.favoriteAccordsRate.push(accord);
+    });
+
     await user.save();
 
     res.status(200).json({ result: 'ok', product: targetProduct });
@@ -86,8 +115,35 @@ const deleteFavoriteProduct = async (req, res, next) => {
 
     const user = await User.findById(user_id);
     const targetProduct = await Product.findOne({ productId: product_id });
+    let cachedTargetProduct = await redis.get(product_id);
+    cachedTargetProduct = JSON.parse(cachedTargetProduct);
 
-    await user.myFavorite.pull(targetProduct._id);
+    user.myFavorite.pull(targetProduct._id);
+
+    let favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    favoriteAccordsRate = favoriteAccordsRate.reduce((obj, accord) => {
+      obj[accord.name] = { rate: accord.rate, color: accord.color };
+      return obj;
+    }, {});
+
+    let calculatedAccordsRate = cachedTargetProduct.accords.reduce((obj, accord) => {
+      if (obj[accord.name]) {
+        const rate = parseInt(accord.styles.width);
+        obj[accord.name].rate -= rate;
+        if(obj[accord.name].rate <= 0) delete obj[accord.name];
+      }
+      return obj;
+    }, favoriteAccordsRate);
+
+    calculatedAccordsRate = Object.entries(calculatedAccordsRate)
+      .map(([key, value]) => ({ name: key, ...value }));
+
+    await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
+
+    calculatedAccordsRate.forEach(accord => {
+      user.favoriteAccordsRate.push(accord);
+    });
+
     await user.save();
 
     res.status(200).json({ result: 'ok' });
