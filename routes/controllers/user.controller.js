@@ -1,15 +1,15 @@
-const { fork } = require('child_process');
-const createError = require('http-errors');
 const redis = require('../../lib/redis');
+const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
 const { tokenSecretKey } = require('../../configs');
 const _ = require('lodash');
-const scraperPath = process.cwd() + '/utils/scraper.js';
 
 const User = require('../../models/User');
 const Product = require('../../models/Product');
 
+const { scrapWorker } = require('../../utils/scrapWorker');
 const { getRandomItemList } = require('../../utils/getRandomItemList');
+const { calculateAccordsRate } = require('../../utils/calculateAccordsRate');
 
 const googleLogin = async (req, res, next) => {
   const user = req.body;
@@ -80,30 +80,16 @@ const addFavoriteProduct = async (req, res, next) => {
     await user.myFavorite.addToSet(targetProduct._id);
     await user.favoriteBrand.addToSet(targetProduct.brand);
 
-    let favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    favoriteAccordsRate = favoriteAccordsRate.reduce((obj, accord) => {
-      obj[accord.name] = { rate: accord.rate, color: accord.color };
-      return obj;
-    }, {});
-
-    let calculatedAccordsRate = cachedTargetProduct.accords.reduce((obj, accord) => {
-      if (obj[accord.name]) {
-        obj[accord.name].rate += parseInt(accord.styles.width);
-      } else {
-        obj[accord.name] = {
-          rate: parseInt(accord.styles.width),
-          color: accord.styles.background,
-        };
-      }
-      return obj;
-    }, favoriteAccordsRate);
-
-    calculatedAccordsRate = Object.entries(calculatedAccordsRate)
-      .map(([key, value]) => ({ name: key, ...value }));
+    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    const newAccordsRate = calculateAccordsRate(
+      favoriteAccordsRate,
+      cachedTargetProduct,
+      'increase',
+    );
 
     await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
 
-    calculatedAccordsRate.forEach(accord => {
+    newAccordsRate.forEach(accord => {
       user.favoriteAccordsRate.push(accord);
     });
 
@@ -126,27 +112,15 @@ const deleteFavoriteProduct = async (req, res, next) => {
 
     user.myFavorite.pull(targetProduct._id);
 
-    let favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    favoriteAccordsRate = favoriteAccordsRate.reduce((obj, accord) => {
-      obj[accord.name] = { rate: accord.rate, color: accord.color };
-      return obj;
-    }, {});
-
-    let calculatedAccordsRate = cachedTargetProduct.accords.reduce((obj, accord) => {
-      if (obj[accord.name]) {
-        const rate = parseInt(accord.styles.width);
-        obj[accord.name].rate -= rate;
-        if(obj[accord.name].rate <= 0) delete obj[accord.name];
-      }
-      return obj;
-    }, favoriteAccordsRate);
-
-    calculatedAccordsRate = Object.entries(calculatedAccordsRate)
-      .map(([key, value]) => ({ name: key, ...value }));
+    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    const newAccordsRate = calculateAccordsRate(
+      favoriteAccordsRate,
+      cachedTargetProduct,
+    );
 
     await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
 
-    calculatedAccordsRate.forEach(accord => {
+    newAccordsRate.forEach(accord => {
       user.favoriteAccordsRate.push(accord);
     });
 
@@ -166,14 +140,12 @@ const getRecommendList = async (req, res, next) => {
 
     if (cachedRecommendList) {
       const randomRecommendList = getRandomItemList(cachedRecommendList, 10);
-      return res.json(randomRecommendList);
+      return res.status(200).json(randomRecommendList);
     }
 
     const user = await User.findById(user_id);
     const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    const childProcess = fork(scraperPath);
-    let target;
-    let keyword;
+    let target, keyword;
 
     if (favoriteAccordsRate.length > 0) {
       favoriteAccordsRate.sort((a, b) => b.rate - a.rate);
@@ -184,21 +156,12 @@ const getRecommendList = async (req, res, next) => {
 
     if (!keyword) return next(createError(404));
 
-    childProcess.on('message', ({ type, payload }) => {
-      if (!payload) next(createError(404));
-      if (type === 'error') next(payload);
+    const searchList =
+      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
+    const randomRecommendList = getRandomItemList(searchList, 10);
 
-      const randomRecommendList = getRandomItemList(payload, 10);
-
-      redis.setex(user_id, 60 * 60 * 12, payload);
-      res.send(randomRecommendList);
-    });
-
-    childProcess.on('error', err => {
-      next(err);
-    });
-
-    childProcess.send({ type: 'searchTargetKeyword', payload: keyword });
+    redis.setex(user_id, 60 * 60 * 12, searchList);
+    res.status(200).json(randomRecommendList);
   } catch (err) {
     next(err);
   }
