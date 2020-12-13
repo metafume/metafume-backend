@@ -1,7 +1,34 @@
+const { parentPort } = require('worker_threads');
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 
-const extractData = async (url, path) => {
+const searchTargetKeyword = async keyword => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  await page.goto(`https://www.fragrantica.com/search/?query=${keyword}`);
+  await page.waitForSelector('.perfumes-row');
+
+  const content = await page.content();
+  const $ = cheerio.load(content);
+
+  const items = $('.perfumes-row').children().toArray();
+  const normalizedItems = items.map(node => {
+    const brand = node.lastChild.firstChild.firstChild.attribs.href.split('/')[4];
+    const name = node.lastChild.firstChild.firstChild.children[0].data.trim();
+    const productId = node.lastChild.firstChild.firstChild.attribs.href.split('/')[5].match(/.*(?=\.)/gm)[0];
+    const imageUrl = node.firstChild.childNodes[0].attribs.src;
+
+    return { brand, name, productId, imageUrl };
+  });
+
+  await browser.close();
+
+  return normalizedItems;
+};
+
+const searchProductDetail = async path => {
+  const url = `https://www.fragrantica.com/perfume/${path}.html`;
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
@@ -54,55 +81,20 @@ const extractData = async (url, path) => {
   };
 };
 
-const searchTargetKeyword = async keyword => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+parentPort.on('message', async data => {
+  const { type, payload } = data;
+  let result;
 
-  await page.goto(`https://www.fragrantica.com/search/?query=${keyword}`);
-  await page.waitForSelector('.perfumes-row');
-
-  const content = await page.content();
-  const $ = cheerio.load(content);
-
-  const items = $('.perfumes-row').children().toArray();
-  const normalizedItems = items.map(node => {
-    const brand = node.lastChild.firstChild.firstChild.attribs.href.split('/')[4];
-    const name = node.lastChild.firstChild.firstChild.children[0].data.trim();
-    const productId = node.lastChild.firstChild.firstChild.attribs.href.split('/')[5].match(/.*(?=\.)/gm)[0];
-    const imageUrl = node.firstChild.childNodes[0].attribs.src;
-
-    return { brand, name, productId, imageUrl };
-  });
-
-  await browser.close();
-
-  return normalizedItems;
-};
-
-const searchProductDetail = async path => {
-  const url = `https://www.fragrantica.com/perfume/${path}.html`;
-  const data = await extractData(url, path);
-  return data;
-};
-
-process.on('message', async data => {
-  try {
-    const { type, payload } = data;
-    let result;
-
-    switch (type) {
-      case 'searchTargetKeyword':
-        result = await searchTargetKeyword(payload);
-        break;
-      case 'searchProductDetail':
-        result = await searchProductDetail(payload);
-        break;
-      default:
-        break;
-    }
-
-    process.send({ type: 'ok', payload: result });
-  } catch (err) {
-    process.send({ type: 'error', payload: err });
+  switch (type) {
+    case 'searchTargetKeyword':
+      result = await searchTargetKeyword(payload);
+      break;
+    case 'searchProductDetail':
+      result = await searchProductDetail(payload);
+      break;
+    default:
+      break;
   }
+
+  parentPort.postMessage(result);
 });

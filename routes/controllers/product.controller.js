@@ -1,26 +1,15 @@
-const { fork } = require('child_process');
-const createError = require('http-errors');
 const redis = require('../../lib/redis');
-const scraperPath = process.cwd() + '/utils/scraper.js';
+const { scrapWorker } = require('../../utils/scrapWorker');
 
 const MATERIAL_LIST = require('../../mock/materialList.json');
 
-const getSearchList = (req, res, next) => {
+const getSearchList = async (req, res, next) => {
   try {
     const { keyword } = req.query;
-    const childProcess = fork(scraperPath);
+    const searchList =
+      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
 
-    childProcess.on('message', ({ type, payload }) => {
-      if (!payload) next(createError(404));
-      if (type === 'error') next(payload);
-      res.send(payload);
-    });
-
-    childProcess.on('error', err => {
-      next(err);
-    });
-
-    childProcess.send({ type: 'searchTargetKeyword', payload: keyword });
+    res.status(200).json(searchList);
   } catch (err) {
     next(err);
   }
@@ -38,37 +27,23 @@ const getProductDetail = async (req, res, next) => {
       return res.send(targetResult);
     }
 
-    const childProcess = fork(scraperPath);
+    const product =
+      await scrapWorker({ type: 'searchProductDetail', payload: path });
 
-    childProcess.on('message', ({ type, payload }) => {
-      try {
-        if (!payload) next(createError(404));
-        if (type === 'error') next(payload);
+    const mapImagePathToNote = product.notes.map(note => {
+      const targetName = note.toLowerCase().replace(/\s/g, '');
+      const isPath = MATERIAL_LIST.find(note => note.name === targetName);
 
-        const mapImagePathToNote = payload.notes.map(note => {
-          const targetName = note.toLowerCase().replace(/\s/g, '');
-          const isPath = MATERIAL_LIST.find(note => note.name === targetName);
-
-          if (isPath) return isPath;
-          return note;
-        });
-
-        payload.notes = mapImagePathToNote;
-
-        redis.set(payload.productId, payload);
-        redis.sadd('recentViewList', payload.productId);
-
-        res.send(payload);
-      } catch (err) {
-        next(err);
-      }
+      if (isPath) return isPath;
+      return note;
     });
 
-    childProcess.on('error', err => {
-      next(err);
-    });
+    product.notes = mapImagePathToNote;
 
-    childProcess.send({ type: 'searchProductDetail', payload: path });
+    redis.set(product.productId, product);
+    redis.sadd('recentViewList', product.productId);
+
+    res.status(200).json(product);
   } catch (err) {
     next(err);
   }
@@ -93,7 +68,7 @@ const getRecentViewList = async (req, res, next) => {
       };
     });
 
-    res.send(recentViewList);
+    res.status(200).json(recentViewList);
   } catch (err) {
     next(err);
   }
