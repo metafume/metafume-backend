@@ -170,9 +170,10 @@ const getRecommendList = async (req, res, next) => {
 const subscribeMail = async (req, res, next) => {
   try {
     const { user_id } = req.params;
+    const { option } = req.body;
     const user = await User.findById(user_id);
 
-    user.isSubscribed = true;
+    user.isSubscribed = option;
     await user.save();
 
     res.status(200).json({ result: 'ok' });
@@ -180,21 +181,6 @@ const subscribeMail = async (req, res, next) => {
     next(err);
   }
 };
-
-const unsubscribeMail = async (req, res, next) => {
-  try {
-    const { user_id } = req.params;
-    const user = await User.findById(user_id);
-
-    user.isSubscribed = false;
-    await user.save();
-
-    res.status(200).json({ result: 'ok' });
-  } catch (err) {
-    next(err);
-  }
-};
-
 
 module.exports = {
   googleLogin,
@@ -203,5 +189,4 @@ module.exports = {
   deleteFavoriteProduct,
   getRecommendList,
   subscribeMail,
-  unsubscribeMail,
 };
