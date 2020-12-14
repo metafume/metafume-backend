@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
 const { dbLoader } = require('./db');
+const scheduleLoader = require('./scheduler');
 
 const initLoaders = app => {
   app.use(cors());
@@ -13,6 +14,7 @@ const initLoaders = app => {
   app.use(cookieParser());
 
   dbLoader();
+  scheduleLoader();
 };
 
 module.exports = initLoaders;
