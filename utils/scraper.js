@@ -2,20 +2,16 @@ const { parentPort } = require('worker_threads');
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 
-const options = {
-  executablePath: '/usr/bin/google-chrome-stable',
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-};
+const { puppeteerOptions: options } = require('../configs');
 
 const searchTargetKeyword = async keyword => {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
 
   await page.goto(`https://www.fragrantica.com/search/?query=${keyword}`);
   await page.waitForSelector('.perfumes-row');
 
-  const content = await page.content(options);
+  const content = await page.content();
   const $ = cheerio.load(content);
 
   const items = $('.perfumes-row').children().toArray();
