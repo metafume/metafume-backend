@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const redis = require('redis');
 
-const { databaseUrl, mongooseOptions } = require('../configs');
+const { databaseUrl, mongooseOptions, redisOptions } = require('../configs');
 
 const dbLoader = () => {
   mongoose.connect(databaseUrl, mongooseOptions);
@@ -9,7 +9,7 @@ const dbLoader = () => {
   mongoose.connection.once('open', () => console.log('mongoose is connected'));
 };
 
-const redisClient = redis.createClient();
+const redisClient = redis.createClient(redisOptions);
 redisClient.on('error', err => console.error(err));
 redisClient.on('connect', () => console.log('redis is connected'));
 
