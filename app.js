@@ -12,6 +12,7 @@ const app = express();
 
 initLoaders(app);
 
+app.use('/', (req, res, next) => res.status(200).end());
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
 
