@@ -1,8 +1,6 @@
 const redis = require('../../lib/redis');
 const { scrapWorker } = require('../../utils/scrapWorker');
 
-const MATERIAL_LIST = require('../../mock/materialList.json');
-
 const getSearchList = async (req, res, next) => {
   try {
     const { keyword } = req.query;
@@ -19,26 +17,16 @@ const getProductDetail = async (req, res, next) => {
   try {
     const { id: path } = req.query;
     const targetProductId = path.split('/')[1];
-    const targetResult = await redis.get(targetProductId);
+    let targetResult = await redis.get(targetProductId);
 
     if (targetResult) {
-      const parsed = JSON.parse(targetResult);
-      redis.sadd('recentViewList', parsed.productId);
-      return res.send(targetResult);
+      targetResult = JSON.parse(targetResult);
+      redis.sadd('recentViewList', targetResult.productId);
+      return res.status(200).json(targetResult);
     }
 
     const product =
       await scrapWorker({ type: 'searchProductDetail', payload: path });
-
-    const mapImagePathToNote = product.notes.map(note => {
-      const targetName = note.toLowerCase().replace(/\s/g, '');
-      const isPath = MATERIAL_LIST.find(note => note.name === targetName);
-
-      if (isPath) return isPath;
-      return note;
-    });
-
-    product.notes = mapImagePathToNote;
 
     redis.set(product.productId, product);
     redis.sadd('recentViewList', product.productId);

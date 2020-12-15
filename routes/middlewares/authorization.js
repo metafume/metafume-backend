@@ -11,7 +11,6 @@ exports.verifyToken = (req, res, next) => {
     const decodedUser = jwt.verify(token, tokenSecretKey);
     if (decodedUser._id !== user_id) return next(createError(403));
 
-    req.user = decodedUser;
     next();
   } catch (err) {
     console.log(err);

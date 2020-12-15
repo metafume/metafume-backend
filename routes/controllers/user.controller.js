@@ -14,6 +14,7 @@ const { calculateAccordsRate } = require('../../utils/calculateAccordsRate');
 const googleLogin = async (req, res, next) => {
   const user = req.body;
   const { email, name, photoUrl } = user;
+
   if (!user) return next(createError(400));
 
   try {
@@ -52,7 +53,7 @@ const tokenLogin = async (req, res, next) => {
 
     await targetUser.execPopulate('myFavorite');
 
-    res.status(200).json({ result: 'ok', token, user: targetUser });
+    res.status(201).json({ result: 'ok', token, user: targetUser });
   } catch (err) {
     next(createError(401));
   }
