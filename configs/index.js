@@ -14,4 +14,8 @@ module.exports = {
     useFindAndModify: false,
     dbName: 'metafume',
   },
+  corsOptions: {
+    origin: process.env.CLIENT_URL,
+    optionsSuccessStatus: 200,
+  },
 };
