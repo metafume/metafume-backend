@@ -14,7 +14,7 @@ initLoaders(app);
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
-app.use('/', (req, res, next) => res.status(200).end());
+app.use('/health', (req, res, next) => res.status(200).send('ok'));
 
 app.use((req, res, next) => {
   next(createError(404));
