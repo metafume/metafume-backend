@@ -18,7 +18,7 @@ exports.ROUTE = {
     },
     SUBSCRIPTION: '/:user_id/subscription',
   },
-  HEALTH: '/heath',
+  HEALTH: '/health',
 };
 
 exports.OK = 'ok';
