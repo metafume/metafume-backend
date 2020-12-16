@@ -36,4 +36,6 @@ parentPort.on('message', async receivers => {
   await (async promises => {
     return await Promise.all(promises);
   })(promisedList);
+
+  parentPort.postMessage('ok');
 });
