@@ -2,13 +2,10 @@ const redis = require('../../lib/redis');
 const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
 const { tokenSecretKey } = require('../../configs');
-const _ = require('lodash');
 
 const User = require('../../models/User');
 const Product = require('../../models/Product');
 
-const { scrapWorker } = require('../../utils/scrapWorker');
-const { getRandomItemList } = require('../../utils/getRandomItemList');
 const { calculateAccordsRate } = require('../../utils/calculateAccordsRate');
 
 const googleLogin = async (req, res, next) => {
@@ -133,41 +130,6 @@ const deleteFavoriteProduct = async (req, res, next) => {
   }
 };
 
-const getRecommendList = async (req, res, next) => {
-  try {
-    const { user_id } = req.params;
-    let cachedRecommendList = await redis.get(user_id);
-    cachedRecommendList = JSON.parse(cachedRecommendList);
-
-    if (cachedRecommendList) {
-      const randomRecommendList = getRandomItemList(cachedRecommendList, 10);
-      return res.status(200).json(randomRecommendList);
-    }
-
-    const user = await User.findById(user_id);
-    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    let target, keyword;
-
-    if (favoriteAccordsRate.length > 0) {
-      favoriteAccordsRate.sort((a, b) => b.rate - a.rate);
-      target = _.random(0, Math.ceil(favoriteAccordsRate.length / 3));
-    }
-
-    if (favoriteAccordsRate[target]) keyword = favoriteAccordsRate[target].name;
-
-    if (!keyword) return next(createError(404));
-
-    const searchList =
-      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
-    const randomRecommendList = getRandomItemList(searchList, 10);
-
-    redis.setex(user_id, 60 * 60 * 12, searchList);
-    res.status(200).json(randomRecommendList);
-  } catch (err) {
-    next(err);
-  }
-};
-
 const subscribeMail = async (req, res, next) => {
   try {
     const { user_id } = req.params;
@@ -188,6 +150,5 @@ module.exports = {
   tokenLogin,
   addFavoriteProduct,
   deleteFavoriteProduct,
-  getRecommendList,
   subscribeMail,
 };

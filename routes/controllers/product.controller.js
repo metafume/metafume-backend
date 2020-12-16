@@ -1,5 +1,11 @@
 const redis = require('../../lib/redis');
+const createError = require('http-errors');
 const { scrapWorker } = require('../../utils/scrapWorker');
+const _ = require('lodash');
+
+const User = require('../../models/User');
+
+const { getRandomItemList } = require('../../utils/getRandomItemList');
 
 const getSearchList = async (req, res, next) => {
   try {
@@ -62,8 +68,44 @@ const getRecentViewList = async (req, res, next) => {
   }
 };
 
+const getRecommendList = async (req, res, next) => {
+  try {
+    const { user_id } = req.params;
+    let cachedRecommendList = await redis.get(user_id);
+    cachedRecommendList = JSON.parse(cachedRecommendList);
+
+    if (cachedRecommendList) {
+      const randomRecommendList = getRandomItemList(cachedRecommendList, 10);
+      return res.status(200).json(randomRecommendList);
+    }
+
+    const user = await User.findById(user_id);
+    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+    let target, keyword;
+
+    if (favoriteAccordsRate.length > 0) {
+      favoriteAccordsRate.sort((a, b) => b.rate - a.rate);
+      target = _.random(0, Math.ceil(favoriteAccordsRate.length / 3));
+    }
+
+    if (favoriteAccordsRate[target]) keyword = favoriteAccordsRate[target].name;
+
+    if (!keyword) return next(createError(404));
+
+    const searchList =
+      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
+    const randomRecommendList = getRandomItemList(searchList, 10);
+
+    redis.setex(user_id, 60 * 60 * 12, searchList);
+    res.status(200).json(randomRecommendList);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getSearchList,
   getProductDetail,
   getRecentViewList,
+  getRecommendList,
 };
