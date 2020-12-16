@@ -7,14 +7,15 @@ const initLoaders = require('./loaders');
 
 const productsRouter = require('./routes/products');
 const usersRouter = require('./routes/users');
+const { ROUTE } = require('./configs/constants');
 
 const app = express();
 
 initLoaders(app);
 
-app.use('/products', productsRouter);
-app.use('/users', usersRouter);
-app.use('/health', (req, res, next) => res.status(200).send('ok'));
+app.use(ROUTE.PRODUCTS.INDEX, productsRouter);
+app.use(ROUTE.USERS.INDEX, usersRouter);
+app.use(ROUTE.HEALTH, (req, res, next) => res.status(200).send('ok'));
 
 app.use((req, res, next) => {
   next(createError(404));
