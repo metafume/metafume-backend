@@ -6,12 +6,18 @@ const _ = require('lodash');
 const User = require('../../models/User');
 
 const { getRandomItemList } = require('../../utils/getRandomItemList');
+const {
+  RECENT_VIEW_LIST,
+  SEARCH_PRODUCT_DETAIL,
+  SEARCH_TARGET_KEYWORD,
+  DAY,
+} = require('../../configs/constants');
 
 const getSearchList = async (req, res, next) => {
   try {
     const { keyword } = req.query;
     const searchList =
-      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
+      await scrapWorker({ type: SEARCH_TARGET_KEYWORD, payload: keyword });
 
     res.status(200).json(searchList);
   } catch (err) {
@@ -27,15 +33,15 @@ const getProductDetail = async (req, res, next) => {
 
     if (targetResult) {
       targetResult = JSON.parse(targetResult);
-      redis.sadd('recentViewList', targetResult.productId);
+      redis.sadd(RECENT_VIEW_LIST, targetResult.productId);
       return res.status(200).json(targetResult);
     }
 
     const product =
-      await scrapWorker({ type: 'searchProductDetail', payload: path });
+      await scrapWorker({ type: SEARCH_PRODUCT_DETAIL, payload: path });
 
     redis.set(product.productId, product);
-    redis.sadd('recentViewList', product.productId);
+    redis.sadd(RECENT_VIEW_LIST, product.productId);
 
     res.status(200).json(product);
   } catch (err) {
@@ -45,7 +51,7 @@ const getProductDetail = async (req, res, next) => {
 
 const getRecentViewList = async (req, res, next) => {
   try {
-    const data = await redis.srandmember('recentViewList', 10);
+    const data = await redis.srandmember(RECENT_VIEW_LIST, 10);
     const promisedList = data.map(id => redis.get(id));
 
     let recentViewList = await (async promises => {
@@ -93,10 +99,10 @@ const getRecommendList = async (req, res, next) => {
     if (!keyword) return next(createError(404));
 
     const searchList =
-      await scrapWorker({ type: 'searchTargetKeyword', payload: keyword });
+      await scrapWorker({ type: SEARCH_TARGET_KEYWORD, payload: keyword });
     const randomRecommendList = getRandomItemList(searchList, 10);
 
-    redis.setex(user_id, 60 * 60 * 12, searchList);
+    redis.setex(user_id, DAY, searchList);
     res.status(200).json(randomRecommendList);
   } catch (err) {
     next(err);

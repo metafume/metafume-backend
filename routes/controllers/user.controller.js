@@ -7,6 +7,7 @@ const User = require('../../models/User');
 const Product = require('../../models/Product');
 
 const { calculateAccordsRate } = require('../../utils/calculateAccordsRate');
+const { OK, INCREASE, MY_FAVORITE } = require('../../configs/constants');
 
 const googleLogin = async (req, res, next) => {
   const user = req.body;
@@ -30,9 +31,9 @@ const googleLogin = async (req, res, next) => {
       expiresIn: '7d',
     });
 
-    await targetUser.execPopulate('myFavorite');
+    await targetUser.execPopulate(MY_FAVORITE);
 
-    res.status(201).json({ result: 'ok', token, user: targetUser });
+    res.status(201).json({ result: OK, token, user: targetUser });
   } catch (err) {
     next(err);
   }
@@ -48,9 +49,9 @@ const tokenLogin = async (req, res, next) => {
 
     if (!targetUser) return next(createError(401));
 
-    await targetUser.execPopulate('myFavorite');
+    await targetUser.execPopulate(MY_FAVORITE);
 
-    res.status(201).json({ result: 'ok', token, user: targetUser });
+    res.status(201).json({ result: OK, token, user: targetUser });
   } catch (err) {
     next(createError(401));
   }
@@ -82,7 +83,7 @@ const addFavoriteProduct = async (req, res, next) => {
     const newAccordsRate = calculateAccordsRate(
       favoriteAccordsRate,
       cachedTargetProduct,
-      'increase',
+      INCREASE,
     );
 
     await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
@@ -93,7 +94,7 @@ const addFavoriteProduct = async (req, res, next) => {
 
     await user.save();
 
-    res.status(200).json({ result: 'ok', product: targetProduct });
+    res.status(200).json({ result: OK, product: targetProduct });
   } catch (err) {
     next(err);
   }
@@ -124,7 +125,7 @@ const deleteFavoriteProduct = async (req, res, next) => {
 
     await user.save();
 
-    res.status(200).json({ result: 'ok' });
+    res.status(200).json({ result: OK });
   } catch (err) {
     next(err);
   }
@@ -139,7 +140,7 @@ const subscribeMail = async (req, res, next) => {
     user.isSubscribed = option;
     await user.save();
 
-    res.status(200).json({ result: 'ok' });
+    res.status(200).json({ result: OK });
   } catch (err) {
     next(err);
   }

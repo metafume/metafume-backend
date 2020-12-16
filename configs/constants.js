@@ -1,4 +1,4 @@
-const ROUTE = {
+exports.ROUTE = {
   PRODUCTS: {
     INDEX: '/products',
     SEARCH: '/search',
@@ -21,6 +21,13 @@ const ROUTE = {
   HEALTH: '/heath',
 };
 
-module.exports = {
-  ROUTE,
-};
+exports.OK = 'ok';
+exports.INCREASE = 'increase';
+
+exports.RECENT_VIEW_LIST = 'recentViewList';
+exports.MY_FAVORITE = 'myFavorite';
+
+exports.SEARCH_PRODUCT_DETAIL = 'searchProductDetail';
+exports.SEARCH_TARGET_KEYWORD = 'searchTargetKeyword';
+
+exports.DAY = 60 * 60 * 12;
