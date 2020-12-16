@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-exports.getRandomItemList = (list, max) => {
+exports.shuffleList = (list, max) => {
   const randomList = [];
   const memo = {};
 

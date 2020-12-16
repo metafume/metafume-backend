@@ -3,6 +3,10 @@ const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 
 const { puppeteerOptions: options } = require('../configs');
+const {
+  SEARCH_TARGET_KEYWORD,
+  SEARCH_PRODUCT_DETAIL,
+ } = require('../configs/constants');
 
 const searchTargetKeyword = async keyword => {
   const browser = await puppeteer.launch(options);
@@ -88,10 +92,10 @@ parentPort.on('message', async data => {
   let result;
 
   switch (type) {
-    case 'searchTargetKeyword':
+    case SEARCH_TARGET_KEYWORD:
       result = await searchTargetKeyword(payload);
       break;
-    case 'searchProductDetail':
+    case SEARCH_PRODUCT_DETAIL:
       result = await searchProductDetail(payload);
       break;
     default:
