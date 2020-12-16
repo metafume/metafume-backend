@@ -1,4 +1,6 @@
-const increaseAccordsRate = (obj, accord) => {
+const { INCREASE } = require('../configs/constants');
+
+const increaseAccordRate = (obj, accord) => {
   if (obj[accord.name]) {
     obj[accord.name].rate += parseInt(accord.styles.width);
   } else {
@@ -10,7 +12,7 @@ const increaseAccordsRate = (obj, accord) => {
   return obj;
 };
 
-const decreaseAccordsRate = (obj, accord) => {
+const decreaseAccordRate = (obj, accord) => {
   if (obj[accord.name]) {
     obj[accord.name].rate -= parseInt(accord.styles.width);
     if(obj[accord.name].rate <= 0) delete obj[accord.name];
@@ -20,7 +22,7 @@ const decreaseAccordsRate = (obj, accord) => {
 
 exports.calculateAccordsRate = (source, target, option) => {
   const reducer =
-    option === 'increase' ? increaseAccordsRate : decreaseAccordsRate;
+    option === INCREASE ? increaseAccordRate : decreaseAccordRate;
 
   const sourceAccordsRate = source.reduce((obj, accord) => {
     obj[accord.name] = { rate: accord.rate, color: accord.color };

@@ -1,7 +1,9 @@
 const { parentPort } = require('worker_threads');
 const nodemailer = require('nodemailer');
 const { nodemailerUser, nodemailerPass } = require('../configs');
+
 const { template } = require('./mailTemplate');
+const { OK } = require('../configs/constants');
 
 const transportOptions = {
   service: 'gmail',
@@ -36,4 +38,6 @@ parentPort.on('message', async receivers => {
   await (async promises => {
     return await Promise.all(promises);
   })(promisedList);
+
+  parentPort.postMessage(OK);
 });
