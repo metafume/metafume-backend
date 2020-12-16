@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const User = require('../models/User');
 
-exports.getRandomFavoriteBrandFromUsers = async () => {
+exports.pickFavoriteBrandFromUser = async () => {
   try {
     const users = await User.find().lean();
     const receivers = [];

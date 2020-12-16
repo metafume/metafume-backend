@@ -5,7 +5,7 @@ const _ = require('lodash');
 
 const User = require('../../models/User');
 
-const { getRandomItemList } = require('../../utils/getRandomItemList');
+const { shuffleList } = require('../../utils/shuffleList');
 const {
   RECENT_VIEW_LIST,
   SEARCH_PRODUCT_DETAIL,
@@ -81,7 +81,7 @@ const getRecommendList = async (req, res, next) => {
     cachedRecommendList = JSON.parse(cachedRecommendList);
 
     if (cachedRecommendList) {
-      const randomRecommendList = getRandomItemList(cachedRecommendList, 10);
+      const randomRecommendList = shuffleList(cachedRecommendList, 10);
       return res.status(200).json(randomRecommendList);
     }
 
@@ -100,7 +100,7 @@ const getRecommendList = async (req, res, next) => {
 
     const searchList =
       await scrapWorker({ type: SEARCH_TARGET_KEYWORD, payload: keyword });
-    const randomRecommendList = getRandomItemList(searchList, 10);
+    const randomRecommendList = shuffleList(searchList, 10);
 
     redis.setex(user_id, DAY, searchList);
     res.status(200).json(randomRecommendList);
