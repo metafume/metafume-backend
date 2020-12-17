@@ -22,9 +22,8 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log(err);
-
   if (process.env.NODE_ENV === 'production') {
+    console.log(err);
     if (err instanceof mongoose.Error) err = createError(500);
     err.stack = null;
   }
@@ -36,3 +35,5 @@ app.use((err, req, res, next) => {
 app.listen(port || 5000, () => {
   console.log(`Server is running on ${port || 5000}`);
 });
+
+module.exports = app;

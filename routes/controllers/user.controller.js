@@ -13,7 +13,7 @@ const googleLogin = async (req, res, next) => {
   const user = req.body;
   const { email, name, photoUrl } = user;
 
-  if (!user) return next(createError(400));
+  if (!email) return next(createError(400));
 
   try {
     let targetUser = await User.findOne({ email });
@@ -135,12 +135,14 @@ const subscribeMail = async (req, res, next) => {
   try {
     const { user_id } = req.params;
     const { option } = req.body;
-    const user = await User.findById(user_id);
 
+    if (typeof option !== 'boolean') return next(createError(403));
+
+    const user = await User.findById(user_id);
     user.isSubscribed = option;
     await user.save();
 
-    res.status(200).json({ result: OK });
+    res.status(200).json({ result: OK, isSubscribed: option });
   } catch (err) {
     next(err);
   }
