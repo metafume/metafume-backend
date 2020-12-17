@@ -1,20 +1,17 @@
 const redis = require('../../lib/redis');
 const createError = require('http-errors');
-const { searchTargetKeyword, searchProductDetail } = require('../../utils/scraper');
+const scraper = require('../../utils/scraper');
 const _ = require('lodash');
 
 const User = require('../../models/User');
 
 const { shuffleList } = require('../../utils/shuffleList');
-const {
-  RECENT_VIEW_LIST,
-  DAY,
-} = require('../../configs/constants');
+const { RECENT_VIEW_LIST, DAY } = require('../../configs/constants');
 
 const getSearchList = async (req, res, next) => {
   try {
     const { keyword } = req.query;
-    const searchList = await searchTargetKeyword(keyword);
+    const searchList = await scraper.searchTargetKeyword(keyword);
 
     res.status(200).json(searchList);
   } catch (err) {
@@ -34,7 +31,7 @@ const getProductDetail = async (req, res, next) => {
       return res.status(200).json(targetResult);
     }
 
-    const product = await searchProductDetail(path);
+    const product = await scraper.searchProductDetail(path);
 
     redis.set(product.productId, product);
     redis.sadd(RECENT_VIEW_LIST, product.productId);
@@ -53,6 +50,7 @@ const getRecentViewList = async (req, res, next) => {
     let recentViewList = await (async promises => {
       return await Promise.all(promises);
     })(promisedList);
+
 
     recentViewList = recentViewList.map(product => {
       const { brand, name, productId, imageUrl } = JSON.parse(product);
@@ -83,7 +81,8 @@ const getRecommendList = async (req, res, next) => {
 
     const user = await User.findById(user_id);
     const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    let target, keyword;
+    let target;
+    let keyword;
 
     if (favoriteAccordsRate.length > 0) {
       favoriteAccordsRate.sort((a, b) => b.rate - a.rate);
@@ -94,7 +93,7 @@ const getRecommendList = async (req, res, next) => {
 
     if (!keyword) return next(createError(404));
 
-    const searchList = await searchTargetKeyword(keyword);
+    const searchList = await scraper.searchTargetKeyword(keyword);
     const randomRecommendList = shuffleList(searchList, 10);
 
     redis.setex(user_id, DAY, searchList);
