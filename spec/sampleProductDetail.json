@@ -1,0 +1,33 @@
+{
+  "brand": "metafume",
+  "productId": "sample-1",
+  "name": "metafume-salt",
+  "accords": [
+    {
+      "name": "woody",
+      "styles": {
+        "color": "#FFFFFF",
+        "background": "#774414",
+        "opacity": "100%",
+        "width": "100%"
+      }
+    },
+    {
+      "name": "aromatic",
+      "styles": {
+        "color": "#000000",
+        "background": "#37a089",
+        "opacity": "81.863117309028%",
+        "width": "78.840303527199%"
+      }
+    }
+  ],
+  "notes": [
+    "Spices",
+    "Thyme",
+    "Cypress",
+    "Woody Notes"
+  ],
+  "description": "description",
+  "imageUrl": "https://example.com"
+}
