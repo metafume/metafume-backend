@@ -40,4 +40,5 @@ parentPort.on('message', async receivers => {
   })(promisedList);
 
   parentPort.postMessage(OK);
+  parentPort.close();
 });

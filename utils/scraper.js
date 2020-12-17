@@ -1,12 +1,7 @@
-const { parentPort } = require('worker_threads');
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 
 const { puppeteerOptions: options } = require('../configs');
-const {
-  SEARCH_TARGET_KEYWORD,
-  SEARCH_PRODUCT_DETAIL,
- } = require('../configs/constants');
 
 const searchTargetKeyword = async keyword => {
   const browser = await puppeteer.launch(options);
@@ -76,6 +71,8 @@ const searchProductDetail = async path => {
   const normalizedImageUrl = imageUrl[0].attribs.src;
   const [brand, productId] = path.split('/');
 
+  await browser.close();
+
   return {
     brand,
     productId,
@@ -87,20 +84,7 @@ const searchProductDetail = async path => {
   };
 };
 
-parentPort.on('message', async data => {
-  const { type, payload } = data;
-  let result;
-
-  switch (type) {
-    case SEARCH_TARGET_KEYWORD:
-      result = await searchTargetKeyword(payload);
-      break;
-    case SEARCH_PRODUCT_DETAIL:
-      result = await searchProductDetail(payload);
-      break;
-    default:
-      break;
-  }
-
-  parentPort.postMessage(result);
-});
+module.exports = {
+  searchTargetKeyword,
+  searchProductDetail,
+};
