@@ -1,6 +1,6 @@
 const redis = require('../../lib/redis');
 const createError = require('http-errors');
-const { scrapWorker } = require('../../utils/scrapWorker');
+const { searchTargetKeyword, searchProductDetail } = require('../../utils/scraper');
 const _ = require('lodash');
 
 const User = require('../../models/User');
@@ -8,16 +8,13 @@ const User = require('../../models/User');
 const { shuffleList } = require('../../utils/shuffleList');
 const {
   RECENT_VIEW_LIST,
-  SEARCH_PRODUCT_DETAIL,
-  SEARCH_TARGET_KEYWORD,
   DAY,
 } = require('../../configs/constants');
 
 const getSearchList = async (req, res, next) => {
   try {
     const { keyword } = req.query;
-    const searchList =
-      await scrapWorker({ type: SEARCH_TARGET_KEYWORD, payload: keyword });
+    const searchList = await searchTargetKeyword(keyword);
 
     res.status(200).json(searchList);
   } catch (err) {
@@ -37,8 +34,7 @@ const getProductDetail = async (req, res, next) => {
       return res.status(200).json(targetResult);
     }
 
-    const product =
-      await scrapWorker({ type: SEARCH_PRODUCT_DETAIL, payload: path });
+    const product = await searchProductDetail(path);
 
     redis.set(product.productId, product);
     redis.sadd(RECENT_VIEW_LIST, product.productId);
@@ -98,8 +94,7 @@ const getRecommendList = async (req, res, next) => {
 
     if (!keyword) return next(createError(404));
 
-    const searchList =
-      await scrapWorker({ type: SEARCH_TARGET_KEYWORD, payload: keyword });
+    const searchList = await searchTargetKeyword(keyword);
     const randomRecommendList = shuffleList(searchList, 10);
 
     redis.setex(user_id, DAY, searchList);
