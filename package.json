@@ -2,7 +2,9 @@
   "name": "metafume-backend",
   "version": "0.0.0",
   "private": true,
-  "engines": { "node" : "12.18.3" },
+  "engines": {
+    "node": "12.18.3"
+  },
   "scripts": {
     "start": "NODE_ENV=production node app.js",
     "dev": "NODE_ENV=development nodemon app.js"
@@ -24,6 +26,8 @@
     "redis": "^3.0.2"
   },
   "devDependencies": {
-    "eslint": "^7.14.0"
+    "eslint": "^7.14.0",
+    "mocha": "^8.2.1",
+    "supertest": "^6.0.1"
   }
 }
