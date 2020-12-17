@@ -71,6 +71,8 @@ const searchProductDetail = async path => {
   const normalizedImageUrl = imageUrl[0].attribs.src;
   const [brand, productId] = path.split('/');
 
+  await browser.close();
+
   return {
     brand,
     productId,
