@@ -32,13 +32,18 @@ const sendMail = async (receiver, keyword) => {
 };
 
 parentPort.on('message', async receivers => {
-  const promisedList =
+  try {
+    const promisedList =
     receivers.map(({ email, keyword }) => sendMail(email, keyword));
 
-  await (async promises => {
-    return await Promise.all(promises);
-  })(promisedList);
+    await (async promises => {
+      return await Promise.all(promises);
+    })(promisedList);
 
-  parentPort.postMessage(OK);
-  parentPort.close();
+    parentPort.postMessage(OK);
+    parentPort.close();
+  } catch (err) {
+    parentPort.close();
+    throw err;
+  }
 });
