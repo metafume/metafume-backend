@@ -1,7 +1,7 @@
 const sinon = require('sinon');
 const Controller = require('../routes/controllers/product.controller');
+const cacheService = require('../services/cache.service');
 const scraper = require('../utils/scraper');
-const redis = require('../lib/redis');
 
 describe('/products (controller)', () => {
   let req;
@@ -54,10 +54,10 @@ describe('/products (controller)', () => {
     afterEach(() => sandbox.restore());
 
     it('should return product detail information', async () => {
-      sandbox.stub(redis, 'get').resolves('');
+      sandbox.stub(cacheService, 'getProductById').resolves('');
       sandbox.stub(scraper, 'searchProductDetail').resolves(expectedResult);
-      sandbox.stub(redis, 'set').returns();
-      sandbox.stub(redis, 'sadd').returns();
+      sandbox.stub(cacheService, 'setProductIdToRecentViewList').returns();
+      sandbox.stub(cacheService, 'setProduct').returns();
 
       await Controller.getProductDetail(req, res, next);
 
@@ -66,7 +66,7 @@ describe('/products (controller)', () => {
     });
 
     it('should execute next function on server error', async () => {
-      sandbox.stub(redis, 'get').resolves('');
+      sandbox.stub(cacheService, 'getProductById').resolves('');
       sandbox.stub(scraper, 'searchProductDetail').throws();
 
       await Controller.getProductDetail(req, res, next);
@@ -108,17 +108,7 @@ describe('/products (controller)', () => {
     afterEach(() => sandbox.restore());
 
     it('should return recent view list', async () => {
-      sandbox.stub(redis, 'srandmember').resolves([{ id: '1' }, { id: '2' }, { id: '3' }]);
-      sandbox.stub(redis, 'get').callsFake(({ id }) => {
-        return new Promise(resolve => {
-          resolve(JSON.stringify({
-            productId: id,
-            brand: 'metafume',
-            name: 'metafume-salt',
-            imageUrl: 'http://www.example.com',
-          }));
-        });
-      });
+      sandbox.stub(cacheService, 'getRecentViewList').resolves(expectedResult);
 
       await Controller.getRecentViewList(req, res, next);
 
@@ -127,7 +117,7 @@ describe('/products (controller)', () => {
     });
 
     it('should execute next function on server error', async () => {
-      sandbox.stub(redis, 'srandmember').throws();
+      sandbox.stub(cacheService, 'getRecentViewList').throws();
 
       await Controller.getProductDetail(req, res, next);
 
