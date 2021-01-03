@@ -2,6 +2,7 @@ const User = require('../models/User');
 
 const { calculateAccordsRate } = require('../utils/calculateAccordsRate');
 const { MY_FAVORITE, ADD, INCREASE } = require('../configs/constants');
+const { getRandomKeywordFromFavoriteAccords } = require('../utils/getRandomKeywordFromFavoriteAccords');
 
 const getUserById = async userId => {
   return await User.findById(userId).populate(MY_FAVORITE);
@@ -13,6 +14,12 @@ const getUserByEmail = async email => {
 
 const setUser = async (email, name, photoUrl) => {
   return await User.create({ email, name, photoUrl });
+};
+
+const getKeywordFromFavoriteAccordsByUserId = async userId => {
+  const user = await getUserById(userId);
+  const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
+  return getRandomKeywordFromFavoriteAccords(favoriteAccordsRate);
 };
 
 const updateFavoriteAccordsRate = async (userId, cachedProduct, product, option) => {
@@ -51,6 +58,7 @@ module.exports = {
   getUserById,
   getUserByEmail,
   setUser,
+  getKeywordFromFavoriteAccordsByUserId,
   updateFavoriteAccordsRate,
   updateSubscription,
 };

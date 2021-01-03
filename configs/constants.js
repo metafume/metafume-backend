@@ -4,7 +4,6 @@ exports.ROUTE = {
     SEARCH: '/search',
     DETAIL: '/detail',
     RECENT: '/recent',
-    RECOMMENDATION: '/recommendation/:user_id',
   },
   USERS: {
     INDEX: '/users',
@@ -17,6 +16,7 @@ exports.ROUTE = {
       DELETE: '/:user_id/favorite/:product_id',
     },
     SUBSCRIPTION: '/:user_id/subscription',
+    RECOMMENDATION: '/:user_id/recommendation',
   },
   HEALTH: '/health',
 };

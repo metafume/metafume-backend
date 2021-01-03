@@ -4,6 +4,8 @@ const userService = require('../../services/user.service');
 const productService = require('../../services/product.service');
 const cacheService = require('../../services/cache.service');
 
+const scraper = require('../../utils/scraper');
+const { shuffleList } = require('../../utils/shuffleList');
 const { tokenSecretKey } = require('../../configs');
 const { OK, ADD } = require('../../configs/constants');
 
@@ -98,10 +100,32 @@ const subscribeMail = async (req, res, next) => {
   }
 };
 
+const getRecommendList = async (req, res, next) => {
+  try {
+    const { user_id } = req.params;
+    const recommendList = await cacheService.getRecommendListByUserId(user_id);
+
+    if (recommendList) return res.status(200).json(recommendList);
+
+    const keyword = await userService.getKeywordFromFavoriteAccordsByUserId(user_id);
+
+    if (!keyword) return next(createError(404));
+
+    const searchList = await scraper.searchTargetKeyword(keyword);
+    const randomRecommendList = shuffleList(searchList, 10);
+    cacheService.setRecommendList(user_id, searchList);
+
+    res.status(200).json(randomRecommendList);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   googleLogin,
   tokenLogin,
   addFavoriteProduct,
   deleteFavoriteProduct,
   subscribeMail,
+  getRecommendList,
 };

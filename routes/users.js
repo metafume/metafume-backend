@@ -10,5 +10,6 @@ router.post(USERS.LOGIN.TOKEN, userController.tokenLogin);
 router.post(USERS.FAVORITE.ADD, verifyToken, userController.addFavoriteProduct);
 router.delete(USERS.FAVORITE.DELETE, verifyToken, userController.deleteFavoriteProduct);
 router.put(USERS.SUBSCRIPTION, verifyToken, userController.subscribeMail);
+router.get(USERS.RECOMMENDATION, verifyToken, userController.getRecommendList);
 
 module.exports = router;

@@ -1,8 +1,6 @@
 const redis = require('../lib/redis');
 
-const userService = require('./user.service');
 const { shuffleList } = require('../utils/shuffleList');
-const { getRandomKeywordFromFavoriteAccords } = require('../utils/getRandomKeywordFromFavoriteAccords');
 const { RECENT_VIEW_LIST, DAY, MONTH } = require('../configs/constants');
 
 const getProductById = async productId => {
@@ -46,12 +44,6 @@ const setRecommendList = (userId, searchList) => {
   redis.setex(userId, DAY / 2, searchList);
 };
 
-const getKeywordFromFavoriteAccordsByUserId = async userId => {
-  const user = await userService.getUserById(userId);
-  const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-  return getRandomKeywordFromFavoriteAccords(favoriteAccordsRate);
-};
-
 module.exports = {
   getProductById,
   setProduct,
@@ -59,5 +51,4 @@ module.exports = {
   getRecentViewList,
   setRecommendList,
   getRecommendListByUserId,
-  getKeywordFromFavoriteAccordsByUserId,
 };

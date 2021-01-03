@@ -1,8 +1,5 @@
-const createError = require('http-errors');
 const cacheService = require('../../services/cache.service');
-
 const scraper = require('../../utils/scraper');
-const { shuffleList } = require('../../utils/shuffleList');
 
 const getSearchList = async (req, res, next) => {
   try {
@@ -44,30 +41,8 @@ const getRecentViewList = async (req, res, next) => {
   }
 };
 
-const getRecommendList = async (req, res, next) => {
-  try {
-    const { user_id } = req.params;
-    const recommendList = await cacheService.getRecommendListByUserId(user_id);
-
-    if (recommendList) return res.status(200).json(recommendList);
-
-    const keyword = await cacheService.getKeywordFromFavoriteAccordsByUserId(user_id);
-
-    if (!keyword) return next(createError(404));
-
-    const searchList = await scraper.searchTargetKeyword(keyword);
-    const randomRecommendList = shuffleList(searchList, 10);
-    cacheService.setRecommendList(user_id, searchList);
-
-    res.status(200).json(randomRecommendList);
-  } catch (err) {
-    next(err);
-  }
-};
-
 module.exports = {
   getSearchList,
   getProductDetail,
   getRecentViewList,
-  getRecommendList,
 };
