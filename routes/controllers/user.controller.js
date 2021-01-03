@@ -1,13 +1,11 @@
-const redis = require('../../lib/redis');
 const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
+const userService = require('../../services/user.service');
+const productService = require('../../services/product.service');
+const cacheService = require('../../services/cache.service');
+
 const { tokenSecretKey } = require('../../configs');
-
-const User = require('../../models/User');
-const Product = require('../../models/Product');
-
-const { calculateAccordsRate } = require('../../utils/calculateAccordsRate');
-const { OK, INCREASE, MY_FAVORITE } = require('../../configs/constants');
+const { OK, ADD } = require('../../configs/constants');
 
 const googleLogin = async (req, res, next) => {
   const user = req.body;
@@ -16,24 +14,22 @@ const googleLogin = async (req, res, next) => {
   if (!email) return next(createError(400));
 
   try {
-    let targetUser = await User.findOne({ email });
+    let user = await userService.getUserByEmail(email);
 
-    if (!targetUser) {
-      targetUser = await User.create({ email, name, photoUrl });
+    if (!user) {
+      user = await userService.setUser({ email, name, photoUrl });
     }
 
     const token = jwt.sign({
-      _id: targetUser._id,
-      email: targetUser.email,
-      name: targetUser.name,
-      photoUrl: targetUser.photoUrl,
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      photoUrl: user.photoUrl,
     }, tokenSecretKey, {
       expiresIn: '7d',
     });
 
-    await targetUser.execPopulate(MY_FAVORITE);
-
-    res.status(201).json({ result: OK, token, user: targetUser });
+    res.status(201).json({ result: OK, token, user });
   } catch (err) {
     next(err);
   }
@@ -45,13 +41,11 @@ const tokenLogin = async (req, res, next) => {
 
   try {
     const { email } = jwt.verify(token, tokenSecretKey);
-    const targetUser = await User.findOne({ email });
+    const user = await userService.getUserByEmail(email);
 
-    if (!targetUser) return next(createError(401));
+    if (!user) return next(createError(401));
 
-    await targetUser.execPopulate(MY_FAVORITE);
-
-    res.status(201).json({ result: OK, token, user: targetUser });
+    res.status(201).json({ result: OK, token, user: user });
   } catch (err) {
     next(createError(401));
   }
@@ -60,41 +54,16 @@ const tokenLogin = async (req, res, next) => {
 const addFavoriteProduct = async (req, res, next) => {
   try {
     const { product_id, user_id } = req.params;
-    let cachedTargetProduct = await redis.get(product_id);
-    cachedTargetProduct = JSON.parse(cachedTargetProduct);
+    const cachedProduct = await cacheService.getProductById(product_id);
+    let product = await productService.getProductById(product_id);
 
-    let targetProduct = await Product.findOne({ productId: product_id });
-
-    if (!targetProduct) {
-      targetProduct = await Product.create({
-        productId: product_id,
-        brand: cachedTargetProduct.brand,
-        name: cachedTargetProduct.name,
-        imageUrl: cachedTargetProduct.imageUrl,
-      });
+    if (!product) {
+      product = await productService.setProduct(product_id, cachedProduct);
     }
 
-    const user = await User.findById(user_id);
+    await userService.updateFavoriteAccordsRate(user_id, cachedProduct, product, ADD);
 
-    await user.myFavorite.addToSet(targetProduct._id);
-    await user.favoriteBrand.addToSet(targetProduct.brand);
-
-    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    const newAccordsRate = calculateAccordsRate(
-      favoriteAccordsRate,
-      cachedTargetProduct,
-      INCREASE,
-    );
-
-    await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
-
-    newAccordsRate.forEach(accord => {
-      user.favoriteAccordsRate.push(accord);
-    });
-
-    await user.save();
-
-    res.status(200).json({ result: OK, product: targetProduct });
+    res.status(200).json({ result: OK, product: product });
   } catch (err) {
     next(err);
   }
@@ -103,27 +72,10 @@ const addFavoriteProduct = async (req, res, next) => {
 const deleteFavoriteProduct = async (req, res, next) => {
   try {
     const { product_id, user_id } = req.params;
+    const cachedProduct = await cacheService.getProductById(product_id);
+    const product = await productService.getProductById(product_id);
 
-    const user = await User.findById(user_id);
-    const targetProduct = await Product.findOne({ productId: product_id });
-    let cachedTargetProduct = await redis.get(product_id);
-    cachedTargetProduct = JSON.parse(cachedTargetProduct);
-
-    user.myFavorite.pull(targetProduct._id);
-
-    const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    const newAccordsRate = calculateAccordsRate(
-      favoriteAccordsRate,
-      cachedTargetProduct,
-    );
-
-    await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
-
-    newAccordsRate.forEach(accord => {
-      user.favoriteAccordsRate.push(accord);
-    });
-
-    await user.save();
+    await userService.updateFavoriteAccordsRate(user_id, cachedProduct, product);
 
     res.status(200).json({ result: OK });
   } catch (err) {
@@ -138,9 +90,7 @@ const subscribeMail = async (req, res, next) => {
 
     if (typeof option !== 'boolean') return next(createError(403));
 
-    const user = await User.findById(user_id);
-    user.isSubscribed = option;
-    await user.save();
+    await userService.updateSubscription(user_id, option);
 
     res.status(200).json({ result: OK, isSubscribed: option });
   } catch (err) {
