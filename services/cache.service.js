@@ -19,15 +19,19 @@ const getRecentViewList = async () => {
     return await Promise.all(promises);
   })(promisedList);
 
-  return recentViewList.map(product => {
-    const { brand, name, productId, imageUrl } = JSON.parse(product);
-    return {
-      brand,
-      name,
-      productId,
-      imageUrl,
-    };
-  });
+  return recentViewList
+    .map(product => {
+      if (product) {
+        const { brand, name, productId, imageUrl } = JSON.parse(product);
+        return {
+          brand,
+          name,
+          productId,
+          imageUrl,
+        };
+      }
+    })
+    .filter(product => product);
 };
 
 const setProductIdToRecentViewList = productId => {
