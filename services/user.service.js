@@ -33,19 +33,19 @@ const updateFavoriteAccordsRate = async (userId, cachedProduct, product, option)
   }
 
   const favoriteAccordsRate = user.favoriteAccordsRate.toObject();
-    const newAccordsRate = calculateAccordsRate(
-      favoriteAccordsRate,
-      cachedProduct,
-      option === ADD ? INCREASE : null,
-    );
+  const newAccordsRate = calculateAccordsRate(
+    favoriteAccordsRate,
+    cachedProduct,
+    option === ADD ? INCREASE : null,
+  );
 
-    await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
+  await user.updateOne({ $set: { 'favoriteAccordsRate': [] } });
 
-    newAccordsRate.forEach(accord => {
-      user.favoriteAccordsRate.push(accord);
-    });
+  newAccordsRate.forEach(accord => {
+    user.favoriteAccordsRate.push(accord);
+  });
 
-    await user.save();
+  await user.save();
 };
 
 const updateSubscription = async (userId, option) => {
